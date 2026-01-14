@@ -1,0 +1,10 @@
+{
+  "baseFontSize": 17,
+  "translucency": false,
+  "cssTheme": "AnuPpuccin",
+  "theme": "obsidian",
+  "accentColor": "#fe8019",
+  "enabledCssSnippets": [
+    "extended-colorschemes"
+  ]
+}
