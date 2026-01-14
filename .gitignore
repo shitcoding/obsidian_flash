@@ -1,0 +1,19 @@
+# Intellij
+*.iml
+.idea
+
+# npm
+node_modules
+package-lock.json
+pnpm-lock.yaml
+
+# build
+main.js
+*.js.map
+data.json
+
+# testing
+coverage/
+.obsidian-cache/
+test/e2e/.obsidian-cache/
+test/e2e/screenshots/
