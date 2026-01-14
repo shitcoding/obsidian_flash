@@ -1,10 +1,10 @@
 {
-  "id": "obsidian-flash",
+  "id": "flash",
   "name": "Flash",
-  "version": "0.6.0",
-  "description": "Flash navigation plugin - jump to links and text using keyboard hints with Unicode support",
+  "version": "1.0.0",
+  "description": "Neovim-style navigation. Jump anywhere with minimal keystrokes.",
   "isDesktopOnly": false,
-  "author": "archer",
-  "authorUrl": "https://github.com/archer",
+  "author": "shitcoding",
+  "authorUrl": "https://github.com/shitcoding",
   "minAppVersion": "0.15.0"
 }
