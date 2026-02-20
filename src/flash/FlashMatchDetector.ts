@@ -36,13 +36,55 @@ export class FlashMatchDetector {
             return [];
         }
 
+        const matches = this.findLiteralMatches(searchString, content, index);
+
+        // Filter to only truly visible ranges (viewport includes off-screen buffer)
+        // CM6's viewport is larger than the visible screen for smooth scrolling,
+        // so we must filter to visibleRanges to avoid assigning labels to off-screen matches
+        const visibleRanges = this.editor.visibleRanges;
+        const visibleMatches = matches.filter(match => {
+            return visibleRanges.some(range =>
+                match.index >= range.from && match.index < range.to
+            );
+        });
+
+        // Exclude label chars that can continue the current search
+        // (flash.nvim-style continuation conflict avoidance).
+        const continuationConflicts = this.collectContinuationConflictChars(searchString, content, index);
+        const labels = generateHintLabels(this.settings.letters, visibleMatches.length, continuationConflicts);
+
+        // Assign labels to visible matches (matches are already in order by index)
+        for (let i = 0; i < visibleMatches.length && i < labels.length; i++) {
+            visibleMatches[i].letter = labels[i];
+        }
+
+        // Return only visible matches that have labels assigned
+        return visibleMatches.filter(m => m.letter);
+    }
+
+    private collectContinuationConflictChars(searchString: string, content: string, index: number): Set<string> {
+        const conflicts = new Set<string>();
+        const candidates = Array.from(new Set(this.settings.letters.toLowerCase().split('')))
+            .filter(char => /\S/.test(char));
+
+        for (const candidate of candidates) {
+            const extendedMatches = this.findLiteralMatches(`${searchString}${candidate}`, content, index);
+            if (extendedMatches.length > 0) {
+                conflicts.add(candidate);
+                if (conflicts.size === candidates.length) {
+                    break;
+                }
+            }
+        }
+
+        return conflicts;
+    }
+
+    private findLiteralMatches(searchString: string, content: string, index: number): FlashMatch[] {
         // Escape special regex characters for safe literal matching
         const escapedSearch = escapeRegex(searchString);
-
-        // Pattern matches anywhere - jump position is calculated in controller
         const pattern = escapedSearch;
 
-        // Create regex with appropriate flags
         let regex: RegExp;
         try {
             regex = this.settings.flashCaseSensitive
@@ -56,57 +98,22 @@ export class FlashMatchDetector {
                 : new RegExp(escapedSearch, 'ig');
         }
 
-        // Find all matches and collect next characters
         const matches: FlashMatch[] = [];
-        const nextChars = new Set<string>();
         let match: RegExpExecArray | null;
-
         while ((match = regex.exec(content)) !== null) {
             matches.push({
                 index: match.index + index,
-                matchLength: searchString.length,
+                matchLength: match[0].length,
                 linkText: match[0],
-                letter: '', // Assigned below
+                letter: '',
                 type: 'flash'
             });
-
-            // Collect the character immediately after the match (flash.nvim style)
-            // This prevents labels from conflicting with search extension
-            const nextCharIndex = match.index + match[0].length;
-            if (nextCharIndex < content.length) {
-                const nextChar = content[nextCharIndex].toLowerCase();
-                // Only exclude printable characters (not whitespace or newlines)
-                if (nextChar && /\S/.test(nextChar)) {
-                    nextChars.add(nextChar);
-                }
-            }
 
             // Protection against infinite loops from zero-length matches
             if (match.index === regex.lastIndex) {
                 regex.lastIndex++;
             }
         }
-
-        // Filter to only truly visible ranges (viewport includes off-screen buffer)
-        // CM6's viewport is larger than the visible screen for smooth scrolling,
-        // so we must filter to visibleRanges to avoid assigning labels to off-screen matches
-        const visibleRanges = this.editor.visibleRanges;
-        const visibleMatches = matches.filter(match => {
-            return visibleRanges.some(range =>
-                match.index >= range.from && match.index < range.to
-            );
-        });
-
-        // Generate labels, excluding characters that appear after matches
-        // This ensures pressing a "next char" always extends the search rather than jumping
-        const labels = generateHintLabels(this.settings.letters, visibleMatches.length, nextChars);
-
-        // Assign labels to visible matches (matches are already in order by index)
-        for (let i = 0; i < visibleMatches.length && i < labels.length; i++) {
-            visibleMatches[i].letter = labels[i];
-        }
-
-        // Return only visible matches that have labels assigned
-        return visibleMatches.filter(m => m.letter);
+        return matches;
     }
 }

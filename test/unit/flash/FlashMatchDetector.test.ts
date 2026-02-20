@@ -452,6 +452,20 @@ describe('FlashMatchDetector', () => {
       // Should still get labels (fallback behavior)
       expect(matches.length).toBe(3);
     });
+
+    it('should not over-exclude labels in case-sensitive mode', () => {
+      // In case-sensitive mode, lower-case continuation key may not actually
+      // extend an upper-case match and should remain available as a label.
+      settings.flashCaseSensitive = true;
+      settings.letters = 'xyz';
+      detector = createDetector('ABX ABY');
+
+      const matches = detector.findMatches('AB');
+
+      // Both matches should still receive labels.
+      expect(matches.length).toBe(2);
+      expect(matches.every(match => match.letter.length > 0)).toBe(true);
+    });
   });
 
   describe('findMatches - off-screen filtering (visibleRanges)', () => {
