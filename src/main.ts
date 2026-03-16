@@ -32,7 +32,7 @@ export default class FlashPlugin extends Plugin {
     prefixInfo: { prefix: string, shiftKey: boolean } | undefined = undefined;
     markViewPlugin: ViewPlugin<MarkPlugin>
     flashViewPlugin: ViewPlugin<FlashWidgetPlugin>
-    cmEditor: LegacyEditor | EditorView
+    cmEditor: unknown
     currentView: View
     contentElement: HTMLElement
     mode: VIEW_MODE
@@ -53,13 +53,10 @@ export default class FlashPlugin extends Plugin {
         void initLayoutMap();
 
         // Migrate old default regex to Unicode-aware iOS-safe version
-        const OLD_DEFAULT_REGEX = '\\b\\w{3,}\\b';
-        const OLD_UNICODE_REGEX = '(?<![\\p{L}\\p{N}_])[\\p{L}\\p{N}]{3,}(?![\\p{L}\\p{N}_])';
-        const NEW_DEFAULT_REGEX = '(?:^|[^\\p{L}\\p{N}_])([\\p{L}\\p{N}]{3,})(?![\\p{L}\\p{N}_])';
-
-        if (this.settings.jumpToAnywhereRegex === OLD_DEFAULT_REGEX ||
-            this.settings.jumpToAnywhereRegex === OLD_UNICODE_REGEX) {
-            this.settings.jumpToAnywhereRegex = NEW_DEFAULT_REGEX;
+        // Old defaults used ASCII \b\w or iOS-unsafe lookbehinds
+        const currentRegex = this.settings.jumpToAnywhereRegex;
+        if (currentRegex === '\\b\\w{3,}\\b' || currentRegex.startsWith('(?<!')) {
+            this.settings.jumpToAnywhereRegex = new Settings().jumpToAnywhereRegex;
             await this.saveData(this.settings);
         }
 
@@ -113,8 +110,8 @@ export default class FlashPlugin extends Plugin {
         });
 
         this.addCommand({
-            id: "flash-mode",
-            name: "Flash mode",
+            id: "search-mode",
+            name: "Search mode",
             callback: this.action.bind(this, 'flash'),
         });
     }

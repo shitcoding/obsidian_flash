@@ -30,7 +30,7 @@ export class FlashSettingsTab extends PluginSettingTab {
         const { containerEl } = this;
 
         containerEl.empty();
-        new Setting(containerEl).setName('Settings').setHeading();
+        new Setting(containerEl).setName('Options').setHeading();
 
         // Reset to defaults button
         new Setting(containerEl)
@@ -47,8 +47,8 @@ export class FlashSettingsTab extends PluginSettingTab {
                     });
             });
 
-        // ===== General Settings =====
-        new Setting(containerEl).setName('General').setHeading();
+        // ===== Hint settings =====
+        new Setting(containerEl).setName('Hints').setHeading();
 
         // Hint characters setting
         new Setting(containerEl)
@@ -123,8 +123,8 @@ export class FlashSettingsTab extends PluginSettingTab {
                     });
             });
 
-        // ===== Flash Settings =====
-        new Setting(containerEl).setName('Flash mode').setHeading();
+        // ===== Search mode settings =====
+        new Setting(containerEl).setName('Search mode').setHeading();
 
         // Case sensitivity toggle
         new Setting(containerEl)

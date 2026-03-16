@@ -14,7 +14,7 @@ import { browser, $, $$ } from '@wdio/globals';
 const FLASH_COMMANDS = {
   JUMP_TO_LINK: 'flash:jump-to-link',
   JUMP_TO_ANYWHERE: 'flash:jump-to-anywhere',
-  FLASH_MODE: 'flash:flash-mode',
+  FLASH_MODE: 'flash:search-mode',
 } as const;
 
 class FlashApp {

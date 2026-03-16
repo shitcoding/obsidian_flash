@@ -70,7 +70,7 @@ Use with [obsidian-vimrc-support](https://github.com/esm7/obsidian-vimrc-support
 
 ```vim
 " Flash Mode (recommended primary navigation)
-exmap flash obcommand flash:flash-mode
+exmap flash obcommand flash:search-mode
 nmap s :flash<CR>
 vmap s :flash<CR>
 
@@ -122,7 +122,7 @@ nmap <Space>j :jumpAnywhere<CR>
 ## Command IDs
 
 ```
-flash:flash-mode      # Flash Mode (incremental search)
+flash:search-mode      # Flash Mode (incremental search)
 flash:jump-to-link      # Jump to Link
 flash:jump-to-anywhere  # Jump to Anywhere
 ```
