@@ -45,8 +45,7 @@ export function generateHintLabels(alphabet: string, count: number, excludedChar
                 const letter = alphabetLowercase[j];
                 if (prefix === '') {
                     // Skip letters that are used as prefixes (they need second letter)
-                    // Use contains() for Obsidian compatibility, fallback to includes()
-                    const hasPrefix = (prefixes as any).contains ? (prefixes as any).contains(letter) : prefixes.includes(letter);
+                    const hasPrefix = prefixes.includes(letter);
                     if (!hasPrefix) {
                         labels.push(letter);
                     }

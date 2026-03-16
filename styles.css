@@ -27,6 +27,16 @@
     opacity: 0.5;
 }
 
+/* Preview mode hint positioning */
+.flash-preview-hint-anchor {
+    position: relative;
+}
+
+.flash-preview-hint-offset {
+    top: 0;
+    left: 0;
+}
+
 /* Legacy popover styling for Preview mode (DOM-based hints, not CM6 widgets) */
 .jl.popover {
     position: absolute;

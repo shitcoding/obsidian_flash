@@ -27,9 +27,9 @@ export const LINK_PATTERNS = {
     // Wiki links: [[Link]] or [[Link|Title]]
     internal: /\[\[(.+?)(\|.+?)?]]/g,
     // Markdown internal: [Title](../example.md)
-    mdInternal: /\[[^\[\]]+?\]\(((\.\.|\w|\d).+?)\)/g,
+    mdInternal: /\[[^[\]]+?\]\(((\.\.|\w|\d).+?)\)/g,
     // External with protocol: [Title](https://...) or [Jira-123](jira://...)
-    external: /\[[^\[\]]+?\]\((.+?:\/\/.+?)\)/g,
+    external: /\[[^[\]]+?\]\((.+?:\/\/.+?)\)/g,
     // Bare URLs: http://... or https://...
     url: /( |\n|^)(https?:\/\/[^ \n]+)/g,
 } as const;

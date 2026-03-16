@@ -8,6 +8,7 @@ import { Settings, FlashMatch } from "../../types";
 import { escapeRegex } from "../utils/regexp";
 import { getVisibleLinesCM6 } from "../utils/common";
 import { generateHintLabels } from "../hints/HintGenerator";
+import { getLatinForLayoutChar } from "../keyboard/KeyboardMapper";
 
 /**
  * Detects matches in visible content for Flash mode.
@@ -78,6 +79,13 @@ export class FlashMatchDetector {
                 // Only exclude printable characters (not whitespace or newlines)
                 if (nextChar && /\S/.test(nextChar)) {
                     nextChars.add(nextChar);
+                    // Also exclude the Latin label letter mapped to this character's
+                    // physical key. Works for any non-Latin layout (Russian, Greek, etc.)
+                    // via Keyboard Layout Map API, with Cyrillic fallback.
+                    const latinEquiv = getLatinForLayoutChar(nextChar);
+                    if (latinEquiv) {
+                        nextChars.add(latinEquiv);
+                    }
                 }
             }
 

@@ -3,8 +3,7 @@
  * Unified popover creation for all rendering contexts.
  */
 
-import {Editor} from "codemirror";
-import {SourceLinkHint} from "../../types";
+import {LegacyEditor, SourceLinkHint} from "../../types";
 
 /**
  * Configuration for creating a popover element
@@ -50,12 +49,11 @@ export function createWidgetElement(content: string, type: string): HTMLElement 
  * @param editor - CM5 Editor instance
  * @param hints - Array of hints to render
  */
-export function renderSourceHints(editor: Editor, hints: SourceLinkHint[]): void {
+export function renderSourceHints(editor: LegacyEditor, hints: SourceLinkHint[]): void {
     hints.forEach(hint => {
         const pos = editor.posFromIndex(hint.index);
         const popover = createPopover({ label: hint.letter, type: hint.type });
-        // The fourth parameter is undocumented - it specifies widget placement
-        (editor as any).addWidget(pos, popover, false, 'over');
+        editor.addWidget(pos, popover, false, 'over');
     });
 }
 

@@ -17,3 +17,7 @@ coverage/
 .obsidian-cache/
 test/e2e/.obsidian-cache/
 test/e2e/screenshots/
+
+# local tooling
+*.tgz
+.serena/

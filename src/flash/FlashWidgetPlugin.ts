@@ -134,7 +134,7 @@ export class FlashWidgetPlugin {
                     fontWeight: 'bold'  // Always bold for visibility
                 };
             }
-        } catch (e) {
+        } catch {
             // domAtPos can throw if position is invalid
         }
 

@@ -3,19 +3,18 @@
  * Detects regex matches in visible content.
  */
 
-import {Editor} from "codemirror";
-import {Processor, SourceLinkHint} from "../../types";
+import {LegacyEditor, Processor, SourceLinkHint} from "../../types";
 import {getVisibleContentCM5} from "../detection/VisibleContent";
 import {findRegexMatches} from "../detection/RegexMatcher";
 import {renderSourceHints} from "../rendering/PopoverFactory";
 
 export default class LegacyRegexProcessor implements Processor {
-    private editor: Editor;
+    private editor: LegacyEditor;
     private pattern: string;
     letters: string;
     private caseSensitive: boolean;
 
-    constructor(editor: Editor, pattern: string, letters: string, caseSensitive: boolean) {
+    constructor(editor: LegacyEditor, pattern: string, letters: string, caseSensitive: boolean) {
         this.editor = editor;
         this.pattern = pattern;
         this.letters = letters;

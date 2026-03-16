@@ -30,7 +30,7 @@ export class FlashSettingsTab extends PluginSettingTab {
         const { containerEl } = this;
 
         containerEl.empty();
-        containerEl.createEl('h2', { text: 'Flash Settings' });
+        new Setting(containerEl).setName('Settings').setHeading();
 
         // Reset to defaults button
         new Setting(containerEl)
@@ -48,7 +48,7 @@ export class FlashSettingsTab extends PluginSettingTab {
             });
 
         // ===== General Settings =====
-        containerEl.createEl('h3', { text: 'General' });
+        new Setting(containerEl).setName('General').setHeading();
 
         // Hint characters setting
         new Setting(containerEl)
@@ -58,7 +58,7 @@ export class FlashSettingsTab extends PluginSettingTab {
                 cb.setValue(this.plugin.settings.letters)
                     .onChange((value: string) => {
                         this.plugin.settings.letters = value;
-                        this.plugin.saveData(this.plugin.settings);
+                        void this.plugin.saveData(this.plugin.settings);
                     });
             });
 
@@ -75,7 +75,7 @@ export class FlashSettingsTab extends PluginSettingTab {
             });
 
         // ===== Jump to Anywhere Settings =====
-        containerEl.createEl('h3', { text: 'Jump to Anywhere' });
+        new Setting(containerEl).setName('Jump to anywhere').setHeading();
 
         // Jump to anywhere regex
         new Setting(containerEl)
@@ -83,7 +83,7 @@ export class FlashSettingsTab extends PluginSettingTab {
             .setDesc("Regex based navigating in editor mode. Use \\p{L} for Unicode letters, \\p{N} for numbers.")
             .addText((text) =>
                 text
-                    .setPlaceholder('Custom Regex')
+                    .setPlaceholder('Custom regex')
                     .setValue(this.plugin.settings.jumpToAnywhereRegex)
                     .onChange(async (value) => {
                         this.plugin.settings.jumpToAnywhereRegex = value;
@@ -110,7 +110,7 @@ export class FlashSettingsTab extends PluginSettingTab {
         // Jump to Anywhere position dropdown (uppercase)
         new Setting(containerEl)
             .setName('Jump position (uppercase)')
-            .setDesc('Cursor position when pressing Shift. For multi-letter labels, if any letter is uppercase, this position is used.')
+            .setDesc('Cursor position when pressing shift. For multi-letter labels, if any letter is uppercase, this position is used.')
             .addDropdown((dropdown) => {
                 dropdown
                     .addOption('first-char', 'First character of the word')
@@ -124,7 +124,7 @@ export class FlashSettingsTab extends PluginSettingTab {
             });
 
         // ===== Flash Settings =====
-        containerEl.createEl('h3', { text: 'Flash Mode' });
+        new Setting(containerEl).setName('Flash mode').setHeading();
 
         // Case sensitivity toggle
         new Setting(containerEl)
@@ -176,7 +176,7 @@ export class FlashSettingsTab extends PluginSettingTab {
         // Jump position dropdown (uppercase)
         new Setting(containerEl)
             .setName('Jump position (uppercase)')
-            .setDesc('Cursor position when pressing Shift. For multi-letter labels, if any letter is uppercase, this position is used.')
+            .setDesc('Cursor position when pressing shift. For multi-letter labels, if any letter is uppercase, this position is used.')
             .addDropdown((dropdown) => {
                 dropdown
                     .addOption('match-start', 'Match start')
@@ -193,7 +193,7 @@ export class FlashSettingsTab extends PluginSettingTab {
             });
 
         // ===== Styling Settings =====
-        containerEl.createEl('h3', { text: 'Styling' });
+        new Setting(containerEl).setName('Styling').setHeading();
 
         // Label background color
         new Setting(containerEl)

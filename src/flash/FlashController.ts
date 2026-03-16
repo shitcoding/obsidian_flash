@@ -4,10 +4,11 @@
  */
 
 import { EditorView } from "@codemirror/view";
+import { Plugin } from "obsidian";
 import { Settings, FlashMatch } from "../../types";
 import { FlashMatchDetector } from "./FlashMatchDetector";
 import { FlashSearchPanel } from "./FlashSearchPanel";
-import { normalizeKeypress, isModifierKey } from "../keyboard/KeyboardMapper";
+import { normalizeKeypress, isModifierKey, getLatinFromCode } from "../keyboard/KeyboardMapper";
 
 /**
  * Callback for when the decoration (matches and labels) need to be updated.
@@ -44,8 +45,8 @@ export class FlashController {
     private onComplete: CompleteCallback | null = null;
 
     constructor(
-        private plugin: any,
-        private view: any,
+        private plugin: Plugin,
+        private view: { contentEl: HTMLElement },
         private editor: EditorView,
         private settings: Settings,
         onJump?: JumpCallback,
@@ -152,8 +153,9 @@ export class FlashController {
 
     /**
      * Process a key press with shift state tracking.
+     * @param code - KeyboardEvent.code (physical key, e.g., "KeyK") for layout-independent label matching
      */
-    private handleKeyDown(key: string, shiftKey: boolean): void {
+    private handleKeyDown(key: string, shiftKey: boolean, code?: string): void {
         // Store shift state for potential auto-jump in updateMatches
         this.lastShiftKey = shiftKey;
 
@@ -190,16 +192,17 @@ export class FlashController {
 
         // Add to search string for printable characters
         if (this.isPrintable(key)) {
-            // Normalize key for Cyrillic keyboard support
-            const normalizedKey = normalizeKeypress(key);
+            // Get Latin letter from physical key position (universal, layout-independent)
+            // Falls back to normalizeKeypress for environments without event.code
+            const physicalLatin = code ? getLatinFromCode(code) : null;
+            const labelKey = physicalLatin || normalizeKeypress(key).toLowerCase();
 
             // Check if we're past minimum characters and have matches (label selection mode)
             if (this.searchString.length >= this.settings.flashCharacterCount && this.matches.length > 0) {
                 // Check if we have a prefix filter active (user already typed first letter of two-letter label)
                 if (this.matchedPrefix) {
                     // Look for a two-letter match
-                    // Second letter can be typed in any case since prefix mode already indicates label intent
-                    const fullLabel = this.matchedPrefix + normalizedKey.toLowerCase();
+                    const fullLabel = this.matchedPrefix + labelKey;
                     const match = this.matches.find(m => m.letter === fullLabel);
 
                     if (match) {
@@ -213,8 +216,18 @@ export class FlashController {
                     this.prefixShiftHeld = false;
                     // Fall through to add to search
                 } else {
-                    // First, check if adding this character would still produce matches
-                    // Prioritize search extension over label selection for better UX
+                    const isNonLatinInput = physicalLatin ? (key !== physicalLatin) : (key !== normalizeKeypress(key));
+
+                    // For non-Latin input, check labels FIRST using the physical key
+                    // because the raw key extends search in the native script while
+                    // the physical key selects a Latin label
+                    if (isNonLatinInput) {
+                        const labelMatch = this.tryLabelMatch(labelKey, shiftKey);
+                        if (labelMatch) return;
+                    }
+
+                    // Check if adding this character would still produce matches
+                    // Prioritize search extension over label selection for Latin input
                     const potentialSearch = this.searchString + key;
                     const potentialMatches = this.detector.findMatches(potentialSearch);
 
@@ -226,39 +239,18 @@ export class FlashController {
                         // Auto-jump when exactly one match remains
                         if (this.matches.length === 1) {
                             const match = this.matches[0];
-                            // Auto-jump uses current shift state
                             this.jumpToMatch(match, shiftKey);
-                            return; // Exit early, jumpToMatch calls deactivate()
+                            return;
                         }
 
                         this.notifyDecorationUpdate();
                         return;
                     }
 
-                    // No matches if we extend search - check if this is a label selection
-                    const lowerKey = normalizedKey.toLowerCase();
-
-                    // Check for single-letter label match
-                    const exactMatch = this.matches.find(m => m.letter === lowerKey);
-                    if (exactMatch) {
-                        // Single-letter label - use current shift state
-                        this.jumpToMatch(exactMatch, shiftKey);
-                        return;
-                    }
-
-                    // Check for prefix match (two-letter labels starting with this key)
-                    const prefixMatches = this.matches.filter(
-                        m => m.letter.length === 2 && m.letter[0] === lowerKey
-                    );
-
-                    if (prefixMatches.length > 0) {
-                        // Enter prefix mode - filter to just these matches
-                        // Store shift state for this key (first of two-letter label)
-                        this.matchedPrefix = lowerKey;
-                        this.prefixShiftHeld = shiftKey;
-                        this.matches = prefixMatches;
-                        this.notifyDecorationUpdate();
-                        return;
+                    // No matches if we extend search - check labels (Latin input)
+                    if (!isNonLatinInput) {
+                        const labelMatch = this.tryLabelMatch(labelKey, shiftKey);
+                        if (labelMatch) return;
                     }
 
                     // Not a label and no matches - still add to search (will result in empty matches)
@@ -273,6 +265,35 @@ export class FlashController {
             this.searchString += key;
             this.updateMatches();
         }
+    }
+
+    /**
+     * Try to match a label key against current matches.
+     * Handles both single-letter and two-letter (prefix) labels.
+     * Returns true if a match was found and handled.
+     */
+    private tryLabelMatch(labelKey: string, shiftKey: boolean): boolean {
+        // Check for single-letter label match
+        const exactMatch = this.matches.find(m => m.letter === labelKey);
+        if (exactMatch) {
+            this.jumpToMatch(exactMatch, shiftKey);
+            return true;
+        }
+
+        // Check for prefix match (two-letter labels starting with this key)
+        const prefixMatches = this.matches.filter(
+            m => m.letter.length === 2 && m.letter[0] === labelKey
+        );
+
+        if (prefixMatches.length > 0) {
+            this.matchedPrefix = labelKey;
+            this.prefixShiftHeld = shiftKey;
+            this.matches = prefixMatches;
+            this.notifyDecorationUpdate();
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -455,7 +476,7 @@ export class FlashController {
         this.keydownHandler = (event: KeyboardEvent) => {
             event.preventDefault();
             event.stopPropagation();
-            this.handleKeyDown(event.key, event.shiftKey);
+            this.handleKeyDown(event.key, event.shiftKey, event.code);
         };
 
         if (this.view?.contentEl) {

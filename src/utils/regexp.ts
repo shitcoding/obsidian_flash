@@ -121,7 +121,7 @@ export function validateRegex(pattern: string): string | null {
     // Try to compile the regex to check for syntax errors
     try {
         new RegExp(pattern, 'u');
-    } catch (e) {
+    } catch {
         // Try without unicode flag as fallback
         try {
             new RegExp(pattern);

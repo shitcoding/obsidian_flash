@@ -1,6 +1,5 @@
-import {Editor} from "codemirror";
 import {EditorView} from "@codemirror/view";
-import {SourceLinkHint} from "../../types";
+import {LegacyEditor, SourceLinkHint} from "../../types";
 import {generateHintLabels} from "../hints/HintGenerator";
 import {detectMarkdownLinks} from "../detection/LinkDetector";
 
@@ -44,7 +43,7 @@ export function convertToLatin(str: string): string {
  * @param cmEditor
  * @returns Letter offset and visible content as a string
  */
-export function getVisibleLineText(cmEditor: Editor): { indOffset: number, strs: string } {
+export function getVisibleLineText(cmEditor: LegacyEditor): { indOffset: number, strs: string } {
     const scrollInfo = cmEditor.getScrollInfo();
     const { line: from } = cmEditor.coordsChar({ left: 0, top: 0 }, 'page');
     const { line: to } = cmEditor.coordsChar({ left: scrollInfo.left, top: scrollInfo.top + scrollInfo.height})
@@ -62,27 +61,27 @@ export function getVisibleLineText(cmEditor: Editor): { indOffset: number, strs:
 export function getVisibleLinesCM6(cmEditor: EditorView): { index: number, content: string } {
     let { from, to } = cmEditor.viewport;
 
-    // @ts-ignore - accessing internal viewState for pixel-precise viewport
-    if (cmEditor.viewState?.pixelViewport) {
-        // @ts-ignore
-        const pixelViewport = cmEditor.viewState.pixelViewport;
-        // @ts-ignore
-        const lines = cmEditor.viewState.viewportLines;
+    // Accessing internal viewState for pixel-precise viewport
+    interface CMViewLine { from: number; to: number; top: number; height: number }
+    interface CMViewState { pixelViewport?: { top: number; bottom: number }; viewportLines?: CMViewLine[] }
+    const viewState = (cmEditor as unknown as { viewState?: CMViewState }).viewState;
+
+    if (viewState?.pixelViewport) {
+        const pixelViewport = viewState.pixelViewport;
+        const lines = viewState.viewportLines;
 
         if (lines?.length) {
             const pixelTop = pixelViewport.top;
             const pixelBottom = pixelViewport.bottom;
 
             // Adjust 'from' - first line whose bottom edge is below pixel top
-            // @ts-ignore
-            const firstVisibleLine = lines.find((line: any) => line.top + line.height > pixelTop);
+            const firstVisibleLine = lines.find((line: CMViewLine) => line.top + line.height > pixelTop);
             if (firstVisibleLine) {
                 from = firstVisibleLine.from;
             }
 
             // Adjust 'to' - last line whose top edge is above pixel bottom
-            // @ts-ignore
-            const lastVisibleLine = [...lines].reverse().find((line: any) => line.top < pixelBottom);
+            const lastVisibleLine = [...lines].reverse().find((line: CMViewLine) => line.top < pixelBottom);
             if (lastVisibleLine) {
                 to = lastVisibleLine.to;
             }
@@ -104,11 +103,11 @@ export function createWidgetElement(content: string, type: string) {
     return linkHintEl;
 }
 
-export function displaySourcePopovers(cmEditor: Editor, linkKeyMap: SourceLinkHint[]): void {
-    const drawWidget = (cmEditor: Editor, linkHint: SourceLinkHint) => {
+export function displaySourcePopovers(cmEditor: LegacyEditor, linkKeyMap: SourceLinkHint[]): void {
+    const drawWidget = (cmEditor: LegacyEditor, linkHint: SourceLinkHint) => {
         const pos = cmEditor.posFromIndex(linkHint.index);
-        // the fourth parameter is undocumented. it specifies where the widget should be place
-        return (cmEditor as any).addWidget(pos, createWidgetElement(linkHint.letter, linkHint.type), false, 'over');
+        // the fourth parameter is undocumented. it specifies where the widget should be placed
+        cmEditor.addWidget(pos, createWidgetElement(linkHint.letter, linkHint.type), false, 'over');
     }
 
     linkKeyMap.forEach(x => drawWidget(cmEditor, x));

@@ -1,15 +1,14 @@
-import {App, MarkdownView, Notice, Plugin, View, editorLivePreviewField} from 'obsidian';
+import {MarkdownView, Notice, Plugin, View, editorLivePreviewField} from 'obsidian';
 import {FlashSettingsTab} from './plugin/SettingsTab';
-import {Editor} from 'codemirror';
 import {EditorSelection} from "@codemirror/state";
 import {EditorView, ViewPlugin} from "@codemirror/view";
-import {LinkHintBase, Settings, SourceLinkHint, FlashMatch} from 'types';
+import {LegacyEditor, LinkHintBase, Settings, SourceLinkHint, FlashMatch} from 'types';
 import {MarkPlugin} from "./cm6-widget/MarkPlugin";
 
 import CM6LinkProcessor from "./processors/CM6LinkProcessor";
 import CM6RegexProcessor from "./processors/CM6RegexProcessor";
 import {escapeRegex} from "./utils/regexp";
-import {convertToLatin, isModifierKey} from "./keyboard/KeyboardMapper";
+import {convertToLatin, isModifierKey, initLayoutMap} from "./keyboard/KeyboardMapper";
 import LegacyRegexpProcessor from "./processors/LegacyRegexpProcessor";
 import LegacySourceLinkProcessor from "./processors/LegacySourceLinkProcessor";
 import PreviewLinkProcessor from "./processors/PreviewLinkProcessor";
@@ -31,9 +30,9 @@ export default class FlashPlugin extends Plugin {
     isLinkHintActive: boolean = false;
     settings: Settings;
     prefixInfo: { prefix: string, shiftKey: boolean } | undefined = undefined;
-    markViewPlugin: ViewPlugin<any>
-    flashViewPlugin: ViewPlugin<any>
-    cmEditor: Editor | EditorView
+    markViewPlugin: ViewPlugin<MarkPlugin>
+    flashViewPlugin: ViewPlugin<FlashWidgetPlugin>
+    cmEditor: LegacyEditor | EditorView
     currentView: View
     contentElement: HTMLElement
     mode: VIEW_MODE
@@ -50,23 +49,29 @@ export default class FlashPlugin extends Plugin {
     async onload() {
         this.settings = await this.loadData() || new Settings();
 
-        // Migrate old default regex to Unicode-aware version
-        const OLD_DEFAULT_REGEX = '\\b\\w{3,}\\b';
-        const NEW_DEFAULT_REGEX = '(?<![\\p{L}\\p{N}_])[\\p{L}\\p{N}]{3,}(?![\\p{L}\\p{N}_])';
+        // Initialize keyboard layout map for non-Latin layout support
+        void initLayoutMap();
 
-        if (this.settings.jumpToAnywhereRegex === OLD_DEFAULT_REGEX) {
+        // Migrate old default regex to Unicode-aware iOS-safe version
+        const OLD_DEFAULT_REGEX = '\\b\\w{3,}\\b';
+        const OLD_UNICODE_REGEX = '(?<![\\p{L}\\p{N}_])[\\p{L}\\p{N}]{3,}(?![\\p{L}\\p{N}_])';
+        const NEW_DEFAULT_REGEX = '(?:^|[^\\p{L}\\p{N}_])([\\p{L}\\p{N}]{3,})(?![\\p{L}\\p{N}_])';
+
+        if (this.settings.jumpToAnywhereRegex === OLD_DEFAULT_REGEX ||
+            this.settings.jumpToAnywhereRegex === OLD_UNICODE_REGEX) {
             this.settings.jumpToAnywhereRegex = NEW_DEFAULT_REGEX;
             await this.saveData(this.settings);
         }
 
         // Migrate old flashJumpToStartOfWord boolean to new flashJumpPosition enum
-        if ((this.settings as any).flashJumpToStartOfWord !== undefined) {
-            if ((this.settings as any).flashJumpToStartOfWord === true) {
+        const rawSettings = this.settings as unknown as Record<string, unknown>;
+        if (rawSettings.flashJumpToStartOfWord !== undefined) {
+            if (rawSettings.flashJumpToStartOfWord === true) {
                 this.settings.flashJumpPosition = 'word-start';
             } else {
                 this.settings.flashJumpPosition = 'match-start';
             }
-            delete (this.settings as any).flashJumpToStartOfWord;
+            delete rawSettings.flashJumpToStartOfWord;
             await this.saveData(this.settings);
         }
 
@@ -79,11 +84,11 @@ export default class FlashPlugin extends Plugin {
             decorations: v => v.decorations
         });
 
-        // Create a closure to capture 'this' for settings access
-        const plugin = this;
+        // Capture settings reference for the ViewPlugin class constructor
+        const pluginSettings = this.settings;
         const FlashPluginClass = class extends FlashWidgetPlugin {
             constructor(view: EditorView) {
-                super(view, plugin.settings);
+                super(view, pluginSettings);
             }
         };
 
@@ -96,24 +101,21 @@ export default class FlashPlugin extends Plugin {
         this.watchForSelectionChange();
 
         this.addCommand({
-            id: 'activate-flash-link',
-            name: 'Flash: Jump to Link',
+            id: 'jump-to-link',
+            name: 'Jump to link',
             callback: this.action.bind(this, 'link'),
-            hotkeys: [{modifiers: ['Ctrl'], key: `'`}],
         });
 
         this.addCommand({
-            id: "activate-flash-anywhere",
-            name: "Flash: Jump to Anywhere",
+            id: "jump-to-anywhere",
+            name: "Jump to anywhere",
             callback: this.action.bind(this, 'regexp'),
-            hotkeys: [{modifiers: ["Ctrl"], key: ";"}],
         });
 
         this.addCommand({
-            id: "activate-flash-mode",
-            name: "Flash: Flash Mode",
+            id: "flash-mode",
+            name: "Flash mode",
             callback: this.action.bind(this, 'flash'),
-            hotkeys: [],
         });
     }
 
@@ -138,7 +140,7 @@ export default class FlashPlugin extends Plugin {
 
         switch (mode) {
             case VIEW_MODE.LEGACY:
-                this.cmEditor = (currentView as any).sourceMode.cmEditor;
+                this.cmEditor = (currentView as unknown as { sourceMode: { cmEditor: LegacyEditor } }).sourceMode.cmEditor;
                 break;
             case VIEW_MODE.LIVE_PREVIEW:
             case VIEW_MODE.SOURCE:
@@ -184,14 +186,14 @@ export default class FlashPlugin extends Plugin {
 
         switch (mode) {
             case VIEW_MODE.LEGACY: {
-                const cmEditor = this.cmEditor as Editor;
+                const cmEditor = this.cmEditor as LegacyEditor;
                 const sourceLinkHints = new LegacySourceLinkProcessor(cmEditor, letters).init();
                 this.handleActions(sourceLinkHints);
                 break;
             }
             case VIEW_MODE.LIVE_PREVIEW: {
                 const cm6Editor = this.cmEditor as EditorView;
-                const previewViewEl: HTMLElement = (currentView as any).currentMode.editor.containerEl;
+                const previewViewEl: HTMLElement = (currentView as unknown as { currentMode: { editor: { containerEl: HTMLElement } } }).currentMode.editor.containerEl;
                 const [previewLinkHints, sourceLinkHints, linkHintHtmlElements] = new LivePreviewLinkProcessor(previewViewEl, cm6Editor, letters).init();
                 cm6Editor.plugin(this.markViewPlugin).setLinks(sourceLinkHints);
                 this.app.workspace.updateOptions();
@@ -199,7 +201,7 @@ export default class FlashPlugin extends Plugin {
                 break;
             }
             case VIEW_MODE.PREVIEW: {
-                const previewViewEl: HTMLElement = (currentView as any).previewMode.containerEl.querySelector('div.markdown-preview-view');
+                const previewViewEl: HTMLElement = (currentView as unknown as { previewMode: { containerEl: HTMLElement } }).previewMode.containerEl.querySelector('div.markdown-preview-view');
                 const previewLinkHints = new PreviewLinkProcessor(previewViewEl, letters).init();
                 this.handleActions(previewLinkHints);
                 break;
@@ -234,13 +236,14 @@ export default class FlashPlugin extends Plugin {
                 this.handleMarkdownRegex(letters, whatToLookAt, caseSensitive);
                 break;
             case VIEW_MODE.PREVIEW:
-                new Notice('Regex jump is not supported in Preview mode. Switch to Edit mode.');
+                new Notice('Regex jump is not supported in reading view. Switch to editing view.');
                 break;
-            case VIEW_MODE.LEGACY:
-                const cmEditor = this.cmEditor as Editor;
+            case VIEW_MODE.LEGACY: {
+                const cmEditor = this.cmEditor as LegacyEditor;
                 const links = new LegacyRegexpProcessor(cmEditor, whatToLookAt, letters, caseSensitive).init();
                 this.handleActions(links);
                 break;
+            }
             default:
                 break;
         }
@@ -443,25 +446,26 @@ export default class FlashPlugin extends Plugin {
                 }, 10);
             }
         } else {
-            const legacyEditor = cmEditor as Editor;
+            const legacyEditor = cmEditor as LegacyEditor;
             legacyEditor.setCursor(legacyEditor.posFromIndex(index));
         }
     }
 
     handleHotkey(heldShiftKey: boolean, link: SourceLinkHint | LinkHintBase) {
-        if (link.linkElement) {
+        const linkElement = 'linkElement' in link ? (link as { linkElement: HTMLElement }).linkElement : undefined;
+        if (linkElement) {
             const event = new MouseEvent("click", {
                 bubbles: true,
                 cancelable: true,
                 view: window,
                 metaKey: heldShiftKey,
             });
-            link.linkElement.dispatchEvent(event);
+            linkElement.dispatchEvent(event);
         } else if (link.type === 'internal') {
             const file = this.app.workspace.getActiveFile()
             if (file) {
                 // the second argument is for the link resolution
-                this.app.workspace.openLinkText(decodeURI(link.linkText), file.path, heldShiftKey, {active: true});
+                void this.app.workspace.openLinkText(decodeURI(link.linkText), file.path, heldShiftKey, {active: true});
             }
         } else if (link.type === 'external') {
             window.open(link.linkText);
@@ -520,7 +524,7 @@ export default class FlashPlugin extends Plugin {
                     }, 10)
                 }
             } else {
-                const legacyEditor = cm6Editor as Editor;
+                const legacyEditor = cm6Editor as LegacyEditor;
                 legacyEditor.setCursor(legacyEditor.posFromIndex(index));
             }
         }
@@ -654,7 +658,9 @@ export default class FlashPlugin extends Plugin {
 
             const heldShiftKey = this.prefixInfo?.shiftKey || event.shiftKey;
 
-            linkHint && this.handleHotkey(heldShiftKey, linkHint);
+            if (linkHint) {
+                this.handleHotkey(heldShiftKey, linkHint);
+            }
 
             this.removePopovers(linkHintHtmlElements);
         };
@@ -685,11 +691,14 @@ export default class FlashPlugin extends Plugin {
         const updateSelection = this.updateSelection.bind(this)
         const watchForChanges = () => {
             const editor = this.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
-            const cm: Editor | undefined = (editor as any)?.cm?.cm;
+            const cm: LegacyEditor | undefined = (editor as unknown as { cm?: { cm?: LegacyEditor } })?.cm?.cm;
 
-            if (cm && !(cm as any)._handlers.cursorActivity.includes(updateSelection)) {
-                cm.on("cursorActivity", updateSelection);
-                this.register(() => cm.off("cursorActivity", updateSelection));
+            if (cm) {
+                const handlers = (cm as unknown as { _handlers: { cursorActivity: Array<(...args: unknown[]) => void> } })._handlers;
+                if (!handlers.cursorActivity.includes(updateSelection)) {
+                    cm.on("cursorActivity", updateSelection);
+                    this.register(() => cm.off("cursorActivity", updateSelection));
+                }
             }
         }
         this.registerEvent(this.app.workspace.on("active-leaf-change", watchForChanges));
@@ -697,7 +706,7 @@ export default class FlashPlugin extends Plugin {
         watchForChanges();
     }
 
-    updateSelection(editor: Editor) {
+    updateSelection(editor: LegacyEditor) {
         const anchor = editor.listSelections()[0]?.anchor
         this.currentCursor = {
             anchor: anchor ? editor.indexFromPos(anchor) : undefined,

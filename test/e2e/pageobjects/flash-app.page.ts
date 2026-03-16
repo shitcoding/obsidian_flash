@@ -12,9 +12,9 @@ import { browser, $, $$ } from '@wdio/globals';
 
 // Plugin command IDs
 const FLASH_COMMANDS = {
-  JUMP_TO_LINK: 'obsidian-flash:activate-flash-link',
-  JUMP_TO_ANYWHERE: 'obsidian-flash:activate-flash-anywhere',
-  FLASH_MODE: 'obsidian-flash:activate-flash-mode',
+  JUMP_TO_LINK: 'flash:jump-to-link',
+  JUMP_TO_ANYWHERE: 'flash:jump-to-anywhere',
+  FLASH_MODE: 'flash:flash-mode',
 } as const;
 
 class FlashApp {

@@ -3,17 +3,16 @@
  * Detects markdown links in visible content.
  */
 
-import {Processor, SourceLinkHint} from "../../types";
-import {Editor} from "codemirror";
+import {LegacyEditor, Processor, SourceLinkHint} from "../../types";
 import {detectMarkdownLinks} from "../detection/LinkDetector";
 import {getVisibleContentCM5} from "../detection/VisibleContent";
 import {renderSourceHints} from "../rendering/PopoverFactory";
 
 export default class LegacyLinkProcessor implements Processor {
-    protected editor: Editor;
+    protected editor: LegacyEditor;
     letters: string;
 
-    constructor(editor: Editor, letters: string) {
+    constructor(editor: LegacyEditor, letters: string) {
         this.editor = editor;
         this.letters = letters;
     }

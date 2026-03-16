@@ -2,7 +2,7 @@ import {LinkHintType, PreviewLinkHint} from "../../types";
 import {generateHintLabels} from "../hints/HintGenerator";
 
 export function getPreviewLinkHints(previewViewEl: HTMLElement, letters: string ): PreviewLinkHint[] {
-    const anchorEls = previewViewEl.querySelectorAll('a, .metadata-link-inner');
+    const anchorEls = previewViewEl.querySelectorAll<HTMLAnchorElement>('a, .metadata-link-inner');
     const embedEls = previewViewEl.querySelectorAll('.internal-embed');
 
     const linkHints: PreviewLinkHint[] = [];
@@ -44,9 +44,9 @@ export function getPreviewLinkHints(previewViewEl: HTMLElement, letters: string 
 
     embedEls.forEach((embedEl, _i) => {
         const linkText = embedEl.getAttribute('src');
-        const linkEl = embedEl.querySelector('.markdown-embed-link') as HTMLElement;
+        const linkEl = embedEl.querySelector('.markdown-embed-link');
 
-        if (linkText && linkEl) {
+        if (linkText && linkEl instanceof HTMLElement) {
             if (checkIsPreviewElOnScreen(previewViewEl, linkEl)) {
                 return
             }
@@ -102,17 +102,17 @@ export function getPreviewLinkHints(previewViewEl: HTMLElement, letters: string 
 }
 
 export function checkIsPreviewElOnScreen(parent: HTMLElement, el: HTMLElement) {
-    el = el.closest('[data-view-type="table"], table') || el;
-    return el.offsetTop < parent.scrollTop || el.offsetTop > parent.scrollTop + parent.offsetHeight
+    const closest = el.closest<HTMLElement>('[data-view-type="table"], table');
+    const target = closest || el;
+    return target.offsetTop < parent.scrollTop || target.offsetTop > parent.scrollTop + parent.offsetHeight
 }
 
 export function displayPreviewPopovers(linkHints: PreviewLinkHint[]): HTMLElement[] {
     const linkHintHtmlElements: HTMLElement[] = []
-    for (let linkHint of linkHints) {
+    for (const linkHint of linkHints) {
         const popoverElement = linkHint.linkElement.createEl('span');
-        linkHint.linkElement.style.position = 'relative'
-        popoverElement.style.top = '0px';
-        popoverElement.style.left = '0px';
+        linkHint.linkElement.addClass('flash-preview-hint-anchor');
+        popoverElement.addClass('flash-preview-hint-offset');
         popoverElement.textContent = linkHint.letter;
         popoverElement.classList.add('jl');
         popoverElement.classList.add('jl-'+linkHint.type);

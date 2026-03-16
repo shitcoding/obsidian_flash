@@ -70,16 +70,16 @@ Use with [obsidian-vimrc-support](https://github.com/esm7/obsidian-vimrc-support
 
 ```vim
 " Flash Mode (recommended primary navigation)
-exmap flash obcommand obsidian-flash:activate-flash-mode
+exmap flash obcommand flash:flash-mode
 nmap s :flash<CR>
 vmap s :flash<CR>
 
 " Jump to Link
-exmap jumpLink obcommand obsidian-flash:activate-flash-link
+exmap jumpLink obcommand flash:jump-to-link
 nmap gl :jumpLink<CR>
 
 " Jump to Anywhere
-exmap jumpAnywhere obcommand obsidian-flash:activate-flash-anywhere
+exmap jumpAnywhere obcommand flash:jump-to-anywhere
 nmap <Space>j :jumpAnywhere<CR>
 ```
 
@@ -115,16 +115,16 @@ nmap <Space>j :jumpAnywhere<CR>
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| Regex pattern | Pattern for matching targets | `(?<![\p{L}\p{N}_])[\p{L}\p{N}]{3,}...` |
+| Regex pattern | Pattern for matching targets | `(?:^\|[^\p{L}\p{N}_])([\p{L}\p{N}]{3,})...` |
 | Jump position | Where cursor lands | After last char |
 | Jump position (Shift) | Position when holding Shift | First char |
 
 ## Command IDs
 
 ```
-obsidian-flash:activate-flash-mode      # Flash Mode (incremental search)
-obsidian-flash:activate-flash-link      # Jump to Link
-obsidian-flash:activate-flash-anywhere  # Jump to Anywhere
+flash:flash-mode      # Flash Mode (incremental search)
+flash:jump-to-link      # Jump to Link
+flash:jump-to-anywhere  # Jump to Anywhere
 ```
 
 ## CSS Customization

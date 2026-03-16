@@ -3,7 +3,7 @@
  * Determines the current editor mode for mode-specific processing.
  */
 
-import {App, View, MarkdownView} from 'obsidian';
+import {App, View, MarkdownView, editorLivePreviewField} from 'obsidian';
 import {EditorView} from "@codemirror/view";
 
 /**
@@ -45,8 +45,6 @@ export function detectViewMode(app: App, view: View): ViewMode {
         const editorView = (<{ editor?: { cm: EditorView } }><unknown>view).editor?.cm;
         if (editorView) {
             try {
-                // Import dynamically to avoid circular dependency
-                const { editorLivePreviewField } = require('obsidian');
                 const isLivePreview = editorView.state.field(editorLivePreviewField);
                 if (isLivePreview) {
                     return ViewMode.LIVE_PREVIEW;

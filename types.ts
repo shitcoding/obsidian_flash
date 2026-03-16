@@ -2,6 +2,27 @@
  * Flash Plugin Type Definitions
  */
 
+// ===== Legacy CM5 Editor =====
+
+/**
+ * Minimal interface for CM5 Editor (legacy support).
+ * Used instead of importing from 'codemirror' which lacks type definitions.
+ */
+export interface LegacyEditor {
+    getCursor(): { line: number; ch: number };
+    setCursor(pos: { line: number; ch: number }): void;
+    posFromIndex(index: number): { line: number; ch: number };
+    indexFromPos(pos: { line: number; ch: number }): number;
+    listSelections(): Array<{ anchor: { line: number; ch: number } }>;
+    getScrollInfo(): { left: number; top: number; height: number; width: number };
+    coordsChar(coords: { left: number; top: number }, mode?: string): { line: number; ch: number };
+    getRange(from: { ch: number; line: number }, to: { ch: number; line: number }): string;
+    addWidget(pos: { line: number; ch: number }, node: HTMLElement, scroll: boolean, position: string): void;
+    on(event: string, handler: (...args: unknown[]) => void): void;
+    off(event: string, handler: (...args: unknown[]) => void): void;
+    state: { vim?: { mode?: string } };
+}
+
 // ===== Flash Types =====
 
 /**
@@ -77,8 +98,8 @@ export class Settings {
 	// Full alphabet with home row priority: asdfghjkl (home) → qwertyuiop (top) → zxcvbnm (bottom)
 	letters: string = 'asdfghjklqwertyuiopzxcvbnm';
 
-	// Unicode-aware regex for jump-to-anywhere
-	jumpToAnywhereRegex: string = '(?<![\\p{L}\\p{N}_])[\\p{L}\\p{N}]{3,}(?![\\p{L}\\p{N}_])';
+	// Unicode-aware regex for jump-to-anywhere (iOS-safe, no lookbehind)
+	jumpToAnywhereRegex: string = '(?:^|[^\\p{L}\\p{N}_])([\\p{L}\\p{N}]{3,})(?![\\p{L}\\p{N}_])';
 
 	// Jump to Anywhere settings
 	jumpAnywhereJumpPosition: 'first-char' | 'last-char' | 'after-last-char' = 'after-last-char';
