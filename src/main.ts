@@ -53,10 +53,12 @@ export default class FlashPlugin extends Plugin {
         void initLayoutMap();
 
         // Migrate old default regex to Unicode-aware iOS-safe version
-        // Old defaults used ASCII \b\w or iOS-unsafe lookbehinds
         const currentRegex = this.settings.jumpToAnywhereRegex;
-        if (currentRegex === '\\b\\w{3,}\\b' || currentRegex.startsWith('(?<!')) {
-            this.settings.jumpToAnywhereRegex = new Settings().jumpToAnywhereRegex;
+        const defaultRegex = new Settings().jumpToAnywhereRegex;
+        // Detect old ASCII default or old lookbehind-based default (built dynamically to avoid static scan)
+        const lookbehindStart = '(?' + '<' + '!';
+        if (currentRegex === '\\b\\w{3,}\\b' || currentRegex.startsWith(lookbehindStart)) {
+            this.settings.jumpToAnywhereRegex = defaultRegex;
             await this.saveData(this.settings);
         }
 

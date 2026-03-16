@@ -30,7 +30,7 @@ export class FlashSettingsTab extends PluginSettingTab {
         const { containerEl } = this;
 
         containerEl.empty();
-        new Setting(containerEl).setName('Options').setHeading();
+        // Reset button at top, no heading needed
 
         // Reset to defaults button
         new Setting(containerEl)
